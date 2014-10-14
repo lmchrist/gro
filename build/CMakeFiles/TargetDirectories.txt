@@ -1,2 +1,0 @@
-/home/lmc/kamaro/gro/build/CMakeFiles/gro.dir
-/home/lmc/kamaro/gro/build/CMakeFiles/gro_exec.dir
