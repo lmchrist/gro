@@ -22,44 +22,73 @@ GraphicObserver::GraphicObserver()
     init_pair(1, COLOR_BLACK, COLOR_CYAN);  // active titleBar
     init_pair(2, COLOR_BLACK, COLOR_GREEN); // deactive titleBar
 
-    /// init screen modules
+    /// add screen modules
 
     getmaxyx( stdscr, windowHeight, windowWidth ); // y, x
     graphicsRunning = false;
 
-    this->dataBlock = new DataBlock();
-    this->roofModule = new ScreenModule( dataBlock );
-    this->dataModule = new ScreenModule( dataBlock );
-    this->textModule = new ScreenModule( dataBlock );
-    this->fbarModule = new ScreenModule( dataBlock );
+    this->dataTabular = new DataTabular();
+    this->dataTextual = new DataTextual();
+
+    this->roofModule = new ScreenModule( 0, dataTabular, dataTextual );
+    this->dataModule = new ScreenModule( 1, dataTabular, dataTextual );
+    this->textModule = new ScreenModule( 2, dataTabular, dataTextual );
+    this->fbarModule = new ScreenModule( 3, dataTabular, dataTextual );
+
+    this->screenModuleHandler = new ScreenModuleHandler( 0, 1, 2, 3 );
+
+    screenModuleHandler->addScreenModule(roofModule);
+    screenModuleHandler->addScreenModule(dataModule);
+    screenModuleHandler->addScreenModule(textModule);
+    screenModuleHandler->addScreenModule(fbarModule);
+
+    screenModuleHandler->setHorizontalRatio(0.5);
+
+    /// configure text streams
+
+    this->dataTextual->addTextSource( COUT );
+
+    /// configure screen modules
 
     this->roofModule->setBodyVisibility(false);
-    this->roofModule->setPosX(0);
-    this->roofModule->setPosY(0);
-    this->roofModule->setEndX(windowWidth -1);
-    this->roofModule->setEndY(windowHeight -1);
     std::string title = "GRO - Graphic Observer (ProcessID: " + std::to_string(getpid()) + ")";
     this->roofModule->setTitle(title);
 
-    this->dataModule->setPosX(0);
-    this->dataModule->setPosY(2);
-    this->dataModule->setEndX(windowWidth  -1);
-    this->dataModule->setEndY(windowHeight -10);
     title = "   #   variable       updates last sec | value";
     this->dataModule->setTitle(title);
 
-    this->textModule->setPosX(0);
-    this->textModule->setPosY(windowHeight - 8);
-    this->textModule->setEndX(windowWidth - 1);
-    this->textModule->setEndY(windowHeight - 1);
     title = "   #   Streaming: cout";
     this->textModule->setTitle(title);
+    this->textModule->setTextMode(true);
+
+    this->fbarModule->setTitleVisibility(false);
+
+
+    /// set up bar commands
+
+    // set up Bar commands -------------------
+    //Command* helpMode = new Command( KEY_F(1), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F1]Notes" );
+    //Command* controlMode = new Command( KEY_F(2), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F2]Controls" );
+    //Command* configMode = new Command( KEY_F(3), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F3]Config" );
+    //Command* controlF4 = new Command( KEY_F(4), std::bind(&DataPort::inputMode, dataPort, screenModuleHandler), " [F4]Parameters", true );
+    //Command* switchMode = new Command( KEY_F(9), std::bind(&RobotControlsKeyboard::switchControlMode, robotControlsKeyboard, S91), " [F9]Switch Mode", true );
+
+    Command* quit = new Command( 27, std::bind(&ScreenModuleHandler::dummy, screenModuleHandler), " [Esc]Quit" );
+
+    this->fbarModule->addCommand( quit );
+
 }
 
 GraphicObserver::~GraphicObserver()
 {
-    std::cout << "called destructor \n" << std::endl;
-    delete dataBlock;
+    this->close();
+}
+
+void GraphicObserver::close()
+{
+    std::cout << "delete objects \n" << std::endl;
+    delete dataTabular;
+    delete dataTextual;
     delete roofModule;
     delete dataModule;
     delete textModule;
@@ -80,16 +109,8 @@ void GraphicObserver::startGraphics()
     // if graphics aren't already started (to avoid two blocking getch() calls)
     if( !graphicsRunning )
     {
-        ///TODO drawAll()
-        this->roofModule->printTitlePad();
-
-        this->dataModule->printTitlePad();
-        this->dataModule->drawCurrentData();
-        this->dataModule->printDataPad();
-
-        this->textModule->printTitlePad();
-        this->textModule->drawCurrentData();
-        this->textModule->printDataPad();
+        // draw everthing
+        screenModuleHandler->reprintScreen();
 
         graphicsRunning = true;
 
@@ -111,15 +132,21 @@ void GraphicObserver::startGraphics()
                 graphicUpdater->join(); // wait for graphicUpdater to finish
                 endwin();	// end curses mode
             }
+            default:
+            {
+                screenModuleHandler->callCommands( key );
+            }
             }
         }
-        std::cout << "end of getch \n" << std::endl;
+        ///IMPORTANT: close here, otherwise callCommands will be distorted
+
+        this->close();
     }
 }
 
-DataBlock* GraphicObserver::getDataTable()
+DataTabular* GraphicObserver::getDataTable()
 {
-    return this->dataBlock;
+    return this->dataTabular;
 }
 
 void GraphicObserver::updateGraphics()
@@ -138,12 +165,20 @@ void GraphicObserver::updateGraphics()
         {
             this->dataModule->setSecondElapsed(true);
         }
-
         this->dataModule->drawCurrentData();
         this->dataModule->printDataPad();
 
-        this->textModule->drawCurrentData();
+        this->textModule->drawCurrentText();
         this->textModule->printDataPad();
+    std::cout << "drawn\n" << std::endl;
+
     }
 }
 
+void GraphicObserver::setHorizontalRatio(double val)
+{
+    if(screenModuleHandler)
+    {
+        screenModuleHandler->setHorizontalRatio(val);
+    }
+}

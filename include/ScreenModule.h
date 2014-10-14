@@ -1,17 +1,20 @@
 #ifndef SCREENMODULE_H
 #define SCREENMODULE_H
 
-#include "DataBlock.h"
+#include "DataTabular.h"
+#include "DataTextual.h"
+#include "Command.h"
+#include <list>
+#include <iostream>
+#include <functional>
 #include <ncurses.h>
 
 class ScreenModule
 {
 
 public:
-    ScreenModule( DataBlock* dataBlock );
+    ScreenModule( unsigned int ID, DataTabular* dataTabular = nullptr, DataTextual* dataTextual = nullptr );
     virtual ~ScreenModule();
-
-    void moveCursor( int y, int x );
 
     // drawers & printers
     void printTitlePad();
@@ -20,6 +23,8 @@ public:
     void drawCurrentData();
     void drawCurrentText();
     void printDataPad();
+    void printCommands();
+    void printModule();
 
     void setPosX( unsigned int val );
     void setPosY( unsigned int val );
@@ -31,18 +36,30 @@ public:
     void setTitleVisibility( bool val );
     void setBodyVisibility( bool val );
     void setSecondElapsed( bool val);
+    void setModuleSelected( bool val );
+    bool isModuleSelected();
+    void setTextMode( bool val );
 
-protected:
+    void rescale( unsigned int posY, unsigned int posX, unsigned int endY, unsigned int endX );
+
+    unsigned int getID();
+
+    void callCommands( char input );
+    void addCommand( Command* command );
+
+    unsigned int posX, posY, endX, endY; // module corners (simpler access for ScreenModuleHandler)
+
 private:
 
-    unsigned int lines;
+    void moveCursor( int y, int x );
+
+
+    unsigned int lines, ID;
     std::string title;
-    bool showTitle, showBody, moduleSelected;
+    bool showTitle, showBody, moduleSelected, textMode;
 
     unsigned int width = 1000;   //pad width
     unsigned int height = 10000; //pad height
-
-    unsigned int posX, posY, endX, endY; // module corners
 
     int cursorX, cursorY = 0;
 
@@ -52,10 +69,13 @@ private:
 
     bool secondElapsed;
 
+    std::list<Command*> commandList;
+
     WINDOW* titlePad;
     WINDOW* dataPad;
 
-    DataBlock* dataBlock = nullptr;
+    DataTabular* dataTabular = nullptr;
+    DataTextual* dataTextual = nullptr;
 };
 
 #endif // SCREENMODULE_H

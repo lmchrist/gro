@@ -1,34 +1,73 @@
 #include "ScreenModule.h"
-#include <iostream>
 
-ScreenModule::ScreenModule( DataBlock* dataBlock )
+ScreenModule::ScreenModule( unsigned int ID, DataTabular* dataTabular, DataTextual* dataTextual )
 {
-    if( dataBlock )
+    if( dataTabular )
     {
-        this->dataBlock = dataBlock;
-        titlePad = newpad(1, width);
-        dataPad  = newpad(height, width);
+        this->dataTabular = dataTabular;
     }
-    else
+    if( dataTextual )
     {
-        /// TODO Error warning
-        this->dataBlock = new DataBlock();
+        this->dataTextual = dataTextual;
     }
-    showTitle = true;
-    showBody = true;
-    secondElapsed = true;
+
+    this->ID = ID;
+    this->titlePad = newpad(1, width);
+    this->dataPad  = newpad(height, width);
+
+    this->moduleSelected = false;
+    this->showTitle = true;
+    this->showBody = true;
+    this->secondElapsed = true;
+    this->textMode = false;
+
+    /// add commands
+
+    Command* cursorUp = new Command(KEY_UP, std::bind(&ScreenModule::moveCursor, this, -1, 0), "");
+    Command* cursorDown = new Command(KEY_DOWN, std::bind(&ScreenModule::moveCursor, this,1, 0), "" );
+    Command* cursorLeft = new Command(KEY_LEFT, std::bind(&ScreenModule::moveCursor, this,0, -3), "" );
+    Command* cursorRight = new Command(KEY_RIGHT, std::bind(&ScreenModule::moveCursor, this, 0, 3), "" );
+    Command* cursorTop = new Command(KEY_HOME, std::bind(&ScreenModule::moveCursor, this, -height, 0), "" );
+    Command* cursorBottom = new Command(KEY_END, std::bind(&ScreenModule::moveCursor, this, height, 0), "" );
+
+    this->addCommand( cursorUp );
+    this->addCommand( cursorDown );
+    this->addCommand( cursorLeft );
+    this->addCommand( cursorRight );
+    this->addCommand( cursorTop );
+    this->addCommand( cursorBottom );
 }
 
 ScreenModule::~ScreenModule()
 {
     //dtor
 }
+unsigned int ScreenModule::getID()
+{
+    return this->ID;
+}
+
+void ScreenModule::callCommands( char input )
+{
+    for( auto it = commandList.begin(); it != commandList.end(); it++ )
+    {
+        if( input == (*it)->returnKey() )
+        {
+            (*it)->execute();
+        }
+    }
+}
+
+void ScreenModule::addCommand( Command* command )
+{
+    commandList.push_back( command );
+}
 
 /// drawers and printers
 
 void ScreenModule::printTitlePad()
 {
-    if( showTitle )
+    if( this->showTitle )
     {
 
         if( moduleSelected )
@@ -46,37 +85,40 @@ void ScreenModule::printTitlePad()
 
 void ScreenModule::moveCursor( int y, int x )
 {
-    lines = this->dataBlock->getTotalBreaks();
-    if ( lines > 0 )
+    if(this->moduleSelected)
     {
-        //erase old cursor
-        eraseCurrentCursor();
-        cursorX += x;
-        cursorY += y;
-        if( cursorX < 0 )
+        lines = this->dataTabular->getTotalBreaks();
+        if ( lines > 0 )
         {
-            //cursorX = width - (endX - posX);
-            cursorX = 0; // no need for flipping, for now
-        }
-        else if( cursorX > width - (endX - posX) )
-        {
-            //cursorX = 0;
-            cursorX = width - (endX - posX) ;
+            //erase old cursor
+            eraseCurrentCursor();
+            cursorX += x;
+            cursorY += y;
+            if( cursorX < 0 )
+            {
+                //cursorX = width - (endX - posX);
+                cursorX = 0; // no need for flipping, for now
+            }
+            else if( cursorX > width - (endX - posX) )
+            {
+                //cursorX = 0;
+                cursorX = width - (endX - posX) ;
 
+            }
+            if( cursorY < 0 )
+            {
+                //cursorY += lines;
+                cursorY = 0;
+            }
+            else if( cursorY >= lines )
+            {
+                //cursorY -= lines;
+                cursorY = lines -1 ;
+            }
         }
-        if( cursorY < 0 )
-        {
-            //cursorY += lines;
-            cursorY = 0;
-        }
-        else if( cursorY >= lines )
-        {
-            //cursorY -= lines;
-            cursorY = lines -1 ;
-        }
+        drawCurrentCursor();
+        printDataPad();
     }
-    drawCurrentCursor();
-    printDataPad();
 }
 
 void ScreenModule::eraseCurrentCursor()
@@ -94,100 +136,169 @@ void ScreenModule::drawCurrentCursor()
 
 void ScreenModule::drawCurrentData()
 {
-    lines = this->dataBlock->getTotalBreaks();
-    if(lines > 0)
+    if( this->showBody &&  this->dataTabular && !this->textMode )
     {
-        wclear(dataPad);
-        drawCurrentCursor();
-
-        std::string tmp;
-        unsigned int logicY, logicX;
-        unsigned int length;
-        unsigned int currentLine = lines - 1; // reverse line order, because unordered_map pushes newest items to front
-        DataMap::iterator it;
-        // draw every dataItem
-        for(it = this->dataBlock->getDataMap()->begin(); it != this->dataBlock->getDataMap()->end(); ++it )
+        lines = this->dataTabular->getTotalBreaks();
+        if(lines > 0)
         {
-            /// TODO: add drawer for > 1
-            for( int i = 0; i < it->second.breaks; i++ )
+            wclear(dataPad);
+            drawCurrentCursor();
+
+            std::string tmp;
+            unsigned int logicY, logicX;
+            unsigned int length;
+            unsigned int currentLine = lines - 1; // reverse line order, because unordered_map pushes newest items to front
+            DataMap::iterator it;
+            // draw every dataItem
+            for(it = this->dataTabular->getDataMap()->begin(); it != this->dataTabular->getDataMap()->end(); ++it )
             {
-                // draw current line number
-                tmp = std::to_string( currentLine ) + "\t" + it->first + " ";
-                length = tmp.length();
-                ///TODO cap string at indent length
-                for(int j = tabularIndent - length; j > 0; j--)
+                /// TODO: add drawer for > 1
+                for( int i = 0; i < it->second.breaks; i++ )
                 {
-                    tmp += ".";
-                }
-                ///TODO method for calc seconds
-                if( secondElapsed )
-                {
-                    // print new update number
-                    tmp += " " + std::to_string( it->second.updates );
-                    it->second.lastPrintedUpdates = it->second.updates;
-                    it->second.updates = 0;
-                }
-                else
-                {
-                    // or print last number
-                    tmp += " " + std::to_string( it->second.lastPrintedUpdates );
-                }
+                    // draw current line number
+                    tmp = std::to_string( currentLine ) + "\t" + it->first + " ";
+                    length = tmp.length();
+                    ///TODO cap string at indent length
+                    for(int j = tabularIndent - length; j > 0; j--)
+                    {
+                        tmp += ".";
+                    }
+                    ///TODO method for calc seconds
+                    if( secondElapsed )
+                    {
+                        // print new update number
+                        tmp += " " + std::to_string( it->second.updates );
+                        it->second.lastPrintedUpdates = it->second.updates;
+                        it->second.updates = 0;
+                    }
+                    else
+                    {
+                        // or print last number
+                        tmp += " " + std::to_string( it->second.lastPrintedUpdates );
+                    }
 
-                mvwaddstr( dataPad, currentLine, lineNumberIndent, tmp.c_str() );
-                tmp = " | " + it->second.value + "\n";
-                waddstr( dataPad, tmp.c_str() );
+                    mvwaddstr( dataPad, currentLine, lineNumberIndent, tmp.c_str() );
+                    tmp = " | " + it->second.value + "\n";
+                    waddstr( dataPad, tmp.c_str() );
 
-                currentLine--;
+                    currentLine--;
+                }
             }
+
+            secondElapsed = false;
+
         }
-
-        secondElapsed = false;
-
     }
 }
 
 void ScreenModule::drawCurrentText()
 {
-    lines = this->dataBlock->getTotalBreaks();
-    if(lines > 0)
+    if(this->showBody &&  this->dataTextual && this->textMode)
     {
-        wclear(dataPad);
-        drawCurrentCursor();
+        Page* page = this->dataTextual->getCurrentPage();
+        std::string tmp, val;
+        unsigned int currentLine = 0;
+        if( !page->empty() )
+        {
+            wclear(dataPad);
+            drawCurrentCursor();
+            for(auto it = page->begin(); it != page->end(); it++ )
+            {
+                tmp = std::to_string( currentLine ) + "\t" + *it + "\n";
+                mvwaddstr( this->dataPad, currentLine, lineNumberIndent, tmp.c_str() );
+                currentLine++;
+                std::cout << "print" << std::endl;
+            }
+        }
+        this->lines = currentLine;
     }
 }
 
 void ScreenModule::printDataPad()
 {
-    if (lines == 0)
+    if(this->showBody)
     {
-        /// do nothing
-        //prefresh(module, 0, 0, posY+1, posX, endY, endX);
+        if (this->lines == 0)
+        {
+            /// do nothing
+            //prefresh(module, 0, 0, posY+1, posX, endY, endX);
+        }
+        else
+        {
+            //determine dataPad positioning
+            int y = cursorY;
+            int x = cursorX;
+            if (cursorY < endY - posY )
+            {
+                y = 0;
+            }
+            else if ( cursorY > lines - (endY - posY) )
+            {
+                y = lines - (endY - posY);
+            }
+
+            if ( cursorX > width - (endX - posX ) - 1 )
+            {
+                x = width - (endX - posX) - 1;
+            }
+            // realign dataPad
+            prefresh(dataPad, y, x, posY+1, posX, endY, endX);
+        }
+    }
+}
+
+void ScreenModule::printCommands()
+{
+    if(this->showBody)
+    {
+        size_t pos;
+        wmove( dataPad, 0, 0 ); //mv logic cursor to 0,0
+        std::string description, tmp;
+
+        for( auto it = commandList.begin(); it != commandList.end(); it++ )
+        {
+            description = ( *it )->returnDescription();
+
+            //TODO handle errors
+            pos = description.find( "]" );
+            tmp = description.substr( 0, pos + 1 );
+            description.erase( 0, pos + 1 );
+
+            waddstr( dataPad, tmp.c_str() );
+
+            wattron( dataPad, COLOR_PAIR( 1 ) );
+            waddstr( dataPad, description.c_str() );
+            wattroff( dataPad, COLOR_PAIR( 1 ) );
+        }
+        unsigned int y, x;
+        getyx( dataPad, y, x ); // get logic cursor position
+        mvwchgat( dataPad, 0, x, -1, COLOR_PAIR( 1 ), 1, NULL ); // print end bar
+    }
+}
+
+void ScreenModule::printModule()
+{
+    if( this->textMode )
+    {
+        drawCurrentText();
     }
     else
     {
-        //determine dataPad positioning
-        int y = cursorY;
-        int x = cursorX;
-        if (cursorY < endY - posY )
-        {
-            y = 0;
-        }
-        else if ( cursorY > lines - (endY - posY) )
-        {
-            y = lines - (endY - posY);
-        }
-
-        if ( cursorX > width - (endX - posX ) - 1 )
-        {
-            x = width - (endX - posX) - 1;
-        }
-        // realign dataPad
-        prefresh(dataPad, y, x, posY+1, posX, endY, endX);
+        drawCurrentData();
     }
-
+    printDataPad();
+    printTitlePad();
 }
 
 /// setters & getters
+
+void ScreenModule::rescale( unsigned int _posY, unsigned int _posX, unsigned int _endY, unsigned int _endX )
+{
+    posX = _posX;
+    posY = _posY;
+    endX = _endX;
+    endY = _endY;
+}
 
 void ScreenModule::setPosX( unsigned int val )
 {
@@ -225,4 +336,15 @@ void ScreenModule::setSecondElapsed( bool val)
 {
     secondElapsed = val;
 }
-
+void ScreenModule::setModuleSelected( bool val)
+{
+    moduleSelected = val;
+}
+void ScreenModule::setTextMode( bool val )
+{
+    textMode = val;
+}
+bool ScreenModule::isModuleSelected()
+{
+    return moduleSelected;
+}
