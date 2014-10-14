@@ -1,0 +1,1 @@
+/usr/bin/c++    -std=c++11     CMakeFiles/gro_exec.dir/src/zmain.cpp.o  -o ../bin/gro_exec -rdynamic ../bin/libgro.a -lpthread -lcurses 

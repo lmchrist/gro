@@ -1,0 +1,2 @@
+/usr/bin/ar cr ../bin/libgro.a  CMakeFiles/gro.dir/src/GraphicObserver.cpp.o CMakeFiles/gro.dir/src/DataBlock.cpp.o CMakeFiles/gro.dir/src/zmain.cpp.o CMakeFiles/gro.dir/src/Clock.cpp.o CMakeFiles/gro.dir/src/ScreenModule.cpp.o
+/usr/bin/ranlib ../bin/libgro.a
