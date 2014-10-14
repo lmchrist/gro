@@ -2,6 +2,18 @@
 #include <iostream>
 GraphicObserver::GraphicObserver()
 {
+    /// start clock
+    CLK_start();
+
+    /// configure text streams before starting ncurse (otherwise freopen() freezes)
+
+    this->dataTabular = new DataTabular();
+    this->dataTextual = new DataTextual();
+
+    this->dataTextual->addTextSource( CERR );
+    this->dataTextual->addTextSource( COUT );
+    this->dataTextual->changePageTo( COUT );
+
     /// start ncurses
 
     initscr(); // start curses mode
@@ -13,22 +25,21 @@ GraphicObserver::GraphicObserver()
 
     start_color();		    // color mode
     use_default_colors();	// use terminal default colors
-    //curs_set(0); // hide blinking cursor
+    curs_set(0);            // hide blinking cursor
 
     refresh();	// init call
 
     /// ncurses color palette
 
     init_pair(1, COLOR_BLACK, COLOR_CYAN);  // active titleBar
-    init_pair(2, COLOR_BLACK, COLOR_GREEN); // deactive titleBar
+    init_pair(2, -1, COLOR_BLUE); // deactive titleBar
+    init_pair(3, COLOR_RED, -1); // cursor
+    init_pair(4, COLOR_BLUE, -1); // text highlight
 
     /// add screen modules
 
     getmaxyx( stdscr, windowHeight, windowWidth ); // y, x
     graphicsRunning = false;
-
-    this->dataTabular = new DataTabular();
-    this->dataTextual = new DataTextual();
 
     this->roofModule = new ScreenModule( 0, dataTabular, dataTextual );
     this->dataModule = new ScreenModule( 1, dataTabular, dataTextual );
@@ -44,18 +55,15 @@ GraphicObserver::GraphicObserver()
 
     screenModuleHandler->setHorizontalRatio(0.5);
 
-    /// configure text streams
-
-    this->dataTextual->addTextSource( COUT );
-
     /// configure screen modules
 
     this->roofModule->setBodyVisibility(false);
     std::string title = "GRO - Graphic Observer (ProcessID: " + std::to_string(getpid()) + ")";
     this->roofModule->setTitle(title);
 
-    title = "   #   variable       updates last sec | value";
+    title = "    #\t        variable                             updates last sec\t | value";
     this->dataModule->setTitle(title);
+    this->dataModule->setModuleSelected(true);
 
     title = "   #   Streaming: cout";
     this->textModule->setTitle(title);
@@ -66,17 +74,24 @@ GraphicObserver::GraphicObserver()
 
     /// set up bar commands
 
+    Command* test = new Command( 't', std::bind(&GraphicObserver::testOutput, this), " [t]Test");
+    Command* quit = new Command( 27, std::bind(&ScreenModuleHandler::dummy, screenModuleHandler), "[Esc]Quit" );
+
     // set up Bar commands -------------------
     //Command* helpMode = new Command( KEY_F(1), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F1]Notes" );
     //Command* controlMode = new Command( KEY_F(2), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F2]Controls" );
     //Command* configMode = new Command( KEY_F(3), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F3]Config" );
     //Command* controlF4 = new Command( KEY_F(4), std::bind(&DataPort::inputMode, dataPort, screenModuleHandler), " [F4]Parameters", true );
-    //Command* switchMode = new Command( KEY_F(9), std::bind(&RobotControlsKeyboard::switchControlMode, robotControlsKeyboard, S91), " [F9]Switch Mode", true );
-
-    Command* quit = new Command( 27, std::bind(&ScreenModuleHandler::dummy, screenModuleHandler), " [Esc]Quit" );
+    Command* refresh = new Command( KEY_F(10), std::bind(&ScreenModuleHandler::reprintScreen, screenModuleHandler), " [F10]Refresh Graphics");
+    Command* tgglSource = new Command( KEY_F(4), std::bind(&ScreenModule::flipPage, textModule), " [F4]Tggl Text");
 
     this->fbarModule->addCommand( quit );
+    this->fbarModule->addCommand( test );
+    this->fbarModule->addCommand( tgglSource );
+    this->fbarModule->addCommand( refresh );
 
+
+    std::cout << "GRO: Initialized"<< std::endl;
 }
 
 GraphicObserver::~GraphicObserver()
@@ -86,7 +101,7 @@ GraphicObserver::~GraphicObserver()
 
 void GraphicObserver::close()
 {
-    std::cout << "delete objects \n" << std::endl;
+    std::cout << "GRO: Delete objects" << std::endl;
     delete dataTabular;
     delete dataTextual;
     delete roofModule;
@@ -109,10 +124,16 @@ void GraphicObserver::startGraphics()
     // if graphics aren't already started (to avoid two blocking getch() calls)
     if( !graphicsRunning )
     {
+        graphicsRunning = true;
+
+        //add some timing info
+        GRO_update("starttime", CLK_printStartTime());
+
         // draw everthing
         screenModuleHandler->reprintScreen();
 
-        graphicsRunning = true;
+        std::cout << "GRO: Start graphic updating"<< std::endl;
+
 
         // if updater isn't already running
         if(!graphicUpdater)
@@ -120,22 +141,22 @@ void GraphicObserver::startGraphics()
             graphicUpdater = new std::thread(std::bind(&GraphicObserver::updateGraphics, this));
         }
 
-        char key;
+        int key;
+
+        std::cout << "GRO: Waiting for keyboard input"<< std::endl;
 
         while ( graphicsRunning && ( key = getch() ) )
         {
-            switch (key)
-            {
-            case 27: /* user pressed backspace */
+            if(key == 27)
             {
                 graphicsRunning = false;
                 graphicUpdater->join(); // wait for graphicUpdater to finish
                 endwin();	// end curses mode
             }
-            default:
+            else
             {
+                GRO_update("pressed keycode", key);
                 screenModuleHandler->callCommands( key );
-            }
             }
         }
         ///IMPORTANT: close here, otherwise callCommands will be distorted
@@ -158,7 +179,8 @@ void GraphicObserver::updateGraphics()
     while( graphicsRunning )
     {
         std::this_thread::sleep_for( std::chrono::milliseconds( wait ) );
-        GRO_update("half secs", i++);
+        GRO_update("time since program start", CLK_printTimeSinceStart());
+        GRO_update("millisec since epoch", CLK_millisecSinceEpoch() );
 
         flipper = !flipper;
         if(flipper)
@@ -170,8 +192,6 @@ void GraphicObserver::updateGraphics()
 
         this->textModule->drawCurrentText();
         this->textModule->printDataPad();
-    std::cout << "drawn\n" << std::endl;
-
     }
 }
 
@@ -181,4 +201,10 @@ void GraphicObserver::setHorizontalRatio(double val)
     {
         screenModuleHandler->setHorizontalRatio(val);
     }
+}
+
+void GraphicObserver::testOutput(void)
+{
+    std::cout << "GRO: test line"<< std::endl;
+    std::cerr << "GRO: test line"<< std::endl;
 }

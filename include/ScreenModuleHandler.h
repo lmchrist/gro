@@ -17,7 +17,7 @@ public:
 
     void reprintScreen();
 
-    void callCommands( char input );
+    void callCommands( int input );
 
     void dummy(){}
 

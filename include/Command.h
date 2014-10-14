@@ -5,9 +5,9 @@
 class Command
 {
 public:
-    Command( char _key, std::function<void( )> _routine, std::string _description = "" ) : key(_key), routine(_routine), description(_description) {}
+    Command( int _key, std::function<void( )> _routine, std::string _description = "" ) : key(_key), routine(_routine), description(_description) {}
 
-    char returnKey( void )
+    int returnKey( void )
     {
         return key;
     }
@@ -21,7 +21,7 @@ public:
     }
 
 private:
-    char key;
+    int key;
     std::function<void( )> routine;
     std::string description;
 };

@@ -5,6 +5,7 @@
 #include "DataTextual.h"
 #include "ScreenModule.h"
 #include "ScreenModuleHandler.h"
+#include "Clock.h"
 #include <ncurses.h>
 #include <thread>
 #include <chrono>
@@ -19,6 +20,13 @@
 // makros with arguments
 #define GRO_update GraphicObserver::getInstance().getDataTable()->update
 #define GRO_ratio GraphicObserver::getInstance().setHorizontalRatio
+
+
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+
+
 
 class GraphicObserver
 {
@@ -51,7 +59,11 @@ private:
     ScreenModule* fbarModule = nullptr;
     ScreenModuleHandler* screenModuleHandler = nullptr;
 
+    Clock* clock = nullptr;
+
     void updateGraphics();
+
+    void testOutput();
 
     unsigned int windowHeight;
     unsigned int windowWidth;

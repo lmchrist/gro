@@ -12,9 +12,6 @@ ScreenModuleHandler::ScreenModuleHandler( unsigned int roofID, unsigned int uppe
     screenModuleIDs.push_back(lowerID);
     screenModuleIDs.push_back(fbarID);
 
-    /// TODO problem?
-   // screenModules.at(this->activeScreenModuleID)->setModuleSelected(true);
-
     /// add commands
 
     Command* jumping = new Command( '\t', std::bind(&ScreenModuleHandler::jumpModules, this) );
@@ -44,7 +41,7 @@ void ScreenModuleHandler::addCommand( Command* command )
     commandList.push_back( command );
 }
 
-void ScreenModuleHandler::callCommands( char input )
+void ScreenModuleHandler::callCommands( int input )
 {
     for( auto it = commandList.begin(); it != commandList.end(); it++ )
     {
@@ -72,12 +69,12 @@ void ScreenModuleHandler::reprintScreen(  )
     ScreenModule* moduleL = screenModules.at( lowerID );
     ScreenModule* moduleB = screenModules.at( fbarID );
 
-    unsigned int h = terminalX*horizontalRatio;   // horizontal split position
+    unsigned int h = terminalY*horizontalRatio;   // horizontal split position
 
     /// TODO erase screen
 
     moduleR->rescale( 0, 0, 1, terminalX-1 );
-    moduleU->rescale( 3, 0, h-1, terminalX - 1 );
+    moduleU->rescale( 2, 0, h-1, terminalX - 1 );
     moduleL->rescale( h+1, 0, terminalY-2, terminalX-1 );
     moduleB->rescale( terminalY-2, 0, terminalY-1, terminalX-1);
 
@@ -168,8 +165,5 @@ void ScreenModuleHandler::changeHorizontalRatio( int modifier )
     }
     modulA->printModule();
     modulB->printModule();
-
-
-    //refresh();
 }
 

@@ -1,5 +1,5 @@
 #include "ScreenModule.h"
-
+#include "GraphicObserver.h"
 ScreenModule::ScreenModule( unsigned int ID, DataTabular* dataTabular, DataTextual* dataTextual )
 {
     if( dataTabular )
@@ -47,7 +47,7 @@ unsigned int ScreenModule::getID()
     return this->ID;
 }
 
-void ScreenModule::callCommands( char input )
+void ScreenModule::callCommands( int input )
 {
     for( auto it = commandList.begin(); it != commandList.end(); it++ )
     {
@@ -87,7 +87,6 @@ void ScreenModule::moveCursor( int y, int x )
 {
     if(this->moduleSelected)
     {
-        lines = this->dataTabular->getTotalBreaks();
         if ( lines > 0 )
         {
             //erase old cursor
@@ -123,15 +122,15 @@ void ScreenModule::moveCursor( int y, int x )
 
 void ScreenModule::eraseCurrentCursor()
 {
-    mvwprintw(dataPad, cursorY, cursorIndent, "   ");
+    mvwprintw(dataPad, cursorY, cursorIndent, "    ");
 }
 
 void ScreenModule::drawCurrentCursor()
 {
     //print new cursor
-    wattron(dataPad, A_BOLD | COLOR_PAIR(4));
-    mvwprintw(dataPad, cursorY, cursorIndent, ">>>");
-    wattroff(dataPad, A_BOLD | COLOR_PAIR(4));
+    wattron(dataPad, A_BOLD | COLOR_PAIR(3));
+    mvwprintw(dataPad, cursorY, cursorIndent, " >>>");
+    wattroff(dataPad, A_BOLD | COLOR_PAIR(3));
 }
 
 void ScreenModule::drawCurrentData()
@@ -156,29 +155,42 @@ void ScreenModule::drawCurrentData()
                 for( int i = 0; i < it->second.breaks; i++ )
                 {
                     // draw current line number
-                    tmp = std::to_string( currentLine ) + "\t" + it->first + " ";
+                    tmp = std::to_string( currentLine ) + "   \t" + it->first + " ";
                     length = tmp.length();
                     ///TODO cap string at indent length
                     for(int j = tabularIndent - length; j > 0; j--)
                     {
                         tmp += ".";
                     }
+                    mvwaddstr( this->dataPad, currentLine, lineNumberIndent, tmp.c_str() );
+
                     ///TODO method for calc seconds
                     if( secondElapsed )
                     {
                         // print new update number
-                        tmp += " " + std::to_string( it->second.updates );
+                        tmp = " " + std::to_string( it->second.updates );
                         it->second.lastPrintedUpdates = it->second.updates;
                         it->second.updates = 0;
                     }
                     else
                     {
                         // or print last number
-                        tmp += " " + std::to_string( it->second.lastPrintedUpdates );
+                        tmp = " " + std::to_string( it->second.lastPrintedUpdates );
+                    }
+                    // updates > 0 in cyan
+                    if( it->second.lastPrintedUpdates > 0)
+                    {
+                        wattron(dataPad, A_BOLD | COLOR_PAIR(4));
+                        waddstr(dataPad, tmp.c_str());
+                        wattroff(dataPad, A_BOLD | COLOR_PAIR(4));
+                    }
+                    else
+                    {
+                        // else normal color
+                        waddstr(dataPad, tmp.c_str());
                     }
 
-                    mvwaddstr( dataPad, currentLine, lineNumberIndent, tmp.c_str() );
-                    tmp = " | " + it->second.value + "\n";
+                    tmp = " \t | " + it->second.value + "\n";
                     waddstr( dataPad, tmp.c_str() );
 
                     currentLine--;
@@ -196,21 +208,24 @@ void ScreenModule::drawCurrentText()
     if(this->showBody &&  this->dataTextual && this->textMode)
     {
         Page* page = this->dataTextual->getCurrentPage();
-        std::string tmp, val;
-        unsigned int currentLine = 0;
-        if( !page->empty() )
+        if(page)
         {
-            wclear(dataPad);
-            drawCurrentCursor();
-            for(auto it = page->begin(); it != page->end(); it++ )
+            std::string tmp, val;
+            unsigned int currentLine = 0;
+
+            if( page->size() > 0 )
             {
-                tmp = std::to_string( currentLine ) + "\t" + *it + "\n";
-                mvwaddstr( this->dataPad, currentLine, lineNumberIndent, tmp.c_str() );
-                currentLine++;
-                std::cout << "print" << std::endl;
+                wclear(dataPad);
+                drawCurrentCursor();
+                for(auto it = page->begin(); it != page->end(); it++ )
+                {
+                    tmp = std::to_string( currentLine ) + "   \t" + *it + "\n";
+                    mvwaddstr( this->dataPad, currentLine, lineNumberIndent, tmp.c_str() );
+                    currentLine++;
+                }
             }
+            this->lines = currentLine;
         }
-        this->lines = currentLine;
     }
 }
 
@@ -273,7 +288,10 @@ void ScreenModule::printCommands()
         unsigned int y, x;
         getyx( dataPad, y, x ); // get logic cursor position
         mvwchgat( dataPad, 0, x, -1, COLOR_PAIR( 1 ), 1, NULL ); // print end bar
+
+        this->lines = 1;
     }
+    printDataPad();
 }
 
 void ScreenModule::printModule()
@@ -288,6 +306,26 @@ void ScreenModule::printModule()
     }
     printDataPad();
     printTitlePad();
+}
+
+void ScreenModule::flipPage()
+{
+    if( this->textMode && this->dataTextual )
+    {
+        std::cerr << "GRO: flip"<< std::endl;
+
+        dataTextual->flipPage();
+
+        ///TODO change title
+        title = "\t Streaming: " + dataTextual->getNameOfCurrentPage();
+
+        //draw text first to get new line counting
+        drawCurrentText();
+        // update cursor
+                moveCursor(0,0); ///NOTE: maybe move cursor down
+        printDataPad();
+        printTitlePad();
+    }
 }
 
 /// setters & getters

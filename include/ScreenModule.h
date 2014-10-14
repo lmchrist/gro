@@ -41,10 +41,11 @@ public:
     void setTextMode( bool val );
 
     void rescale( unsigned int posY, unsigned int posX, unsigned int endY, unsigned int endX );
+    void flipPage();
 
     unsigned int getID();
 
-    void callCommands( char input );
+    void callCommands( int input );
     void addCommand( Command* command );
 
     unsigned int posX, posY, endX, endY; // module corners (simpler access for ScreenModuleHandler)
@@ -54,7 +55,7 @@ private:
     void moveCursor( int y, int x );
 
 
-    unsigned int lines, ID;
+    unsigned int lines, ID = 0;
     std::string title;
     bool showTitle, showBody, moduleSelected, textMode;
 
@@ -64,8 +65,8 @@ private:
     int cursorX, cursorY = 0;
 
     unsigned int cursorIndent = 0;
-    unsigned int lineNumberIndent = 4;
-    unsigned int tabularIndent = 31;
+    unsigned int lineNumberIndent = 5;
+    unsigned int tabularIndent = 56;
 
     bool secondElapsed;
 
