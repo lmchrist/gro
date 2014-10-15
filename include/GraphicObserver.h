@@ -11,15 +11,15 @@
 #include <chrono>
 #include <unistd.h> //to get process id
 
-// makros for easier data observing
+/// makros for easier data observing
 #define GRO_redirectCout();
 #define GRO_redirectCerr();
-#define GRO_startObserving(); GraphicObserver::getInstance().startObserving();
-#define GRO_startGraphics(); GraphicObserver::getInstance().startGraphics();
+#define GRO_startObserving(); GraphicObserver::getInstance().startObserving();  // call this as soon as possible to catch all stream output
+#define GRO_startGraphics(); GraphicObserver::getInstance().startGraphics();    // call this to enter graphic mode
 
 // makros with arguments
-#define GRO_update GraphicObserver::getInstance().getDataTable()->update
-#define GRO_ratio GraphicObserver::getInstance().setHorizontalRatio
+#define GRO_update GraphicObserver::getInstance().getDataTable()->update        // call GRO_update(name, value); to add data entry
+#define GRO_ratio GraphicObserver::getInstance().setHorizontalRatio             // change horizontal split (use before GRO_startGraphics();)
 
 
 #include <iostream>
@@ -61,12 +61,11 @@ private:
 
     Clock* clock = nullptr;
 
+    void initNCurses();
     void updateGraphics();
 
-    void testOutput();
 
-    unsigned int windowHeight;
-    unsigned int windowWidth;
+    void testOutput();
 
     /// TODO implement different frequencies
     unsigned int graphicUpdatesPerSecond = 2;

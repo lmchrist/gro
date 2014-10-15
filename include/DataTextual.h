@@ -51,6 +51,10 @@ private:
     fpos_t pos_stdout;
     int fd_stdout;
 
+        //STDOUT
+    fpos_t pos_stderr;
+    int fd_stderr;
+
 };
 
 #endif // DATATEXTUAL_H

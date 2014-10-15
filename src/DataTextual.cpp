@@ -27,9 +27,27 @@ DataTextual::~DataTextual()
     }
     if(book.find(STDOUT)!=book.end())
     {
-//Close file and restore standard output to stdout
-        fclose(stdout);
+        fflush(stdout);
+        dup2(fd_stdout, fileno(stdout));
+        close(fd_stdout);
+        clearerr(stdout);
+        fsetpos(stdout, &pos_stdout);
     }
+    if(book.find(STDERR)!=book.end())
+    {
+        fflush(stderr);
+        dup2(fd_stderr, fileno(stderr));
+        close(fd_stderr);
+        clearerr(stderr);
+        fsetpos(stderr, &pos_stderr);
+    }
+    /// NOTE: maybe copy files before deleting
+    /*
+    remove("GRO_cout.txt");
+    remove("GRO_cerr.txt");
+    remove("GRO_stdout.txt");
+    remove("GRO_stderr.txt");
+    */
 }
 
 Book* DataTextual::getBook()
@@ -59,10 +77,20 @@ void DataTextual::addTextSource( TextSource src )
             cerrbuf = std::cerr.rdbuf(); //save old buf
             std::cerr.rdbuf(f_cerr.rdbuf()); //redirect std::cout to cout.txt
         }
+        /*
         if(src == STDOUT)
         {
-            //Redirect current standard output
-            freopen("GRO_stdout.txt", "rw", stdout);
+            fflush(stdout);
+            fgetpos(stdout, &pos_stdout);
+            fd_stdout = dup(fileno(stdout));
+            freopen("GRO_stdout.txt", "w", stdout);
+        }*/
+        if(src == STDERR)
+        {
+            fflush(stderr);
+            fgetpos(stderr, &pos_stderr);
+            fd_stderr = dup(fileno(stderr));
+            freopen("GRO_stderr.txt", "w", stderr);
         }
     }
 }
@@ -94,7 +122,7 @@ void DataTextual::updatePages()
 {
     while( this->keepRunning )
     {
-        std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( 200 ) );
 
         /// TODO check, that current page isnt end
         if(currentSource == COUT)
@@ -125,6 +153,7 @@ void DataTextual::updatePages()
         if(currentSource == CERR)
         {
             /// TODO exctract open/close
+
             std::ifstream myfile;
             std::string line;
             myfile.open ("GRO_cerr.txt");
@@ -147,24 +176,62 @@ void DataTextual::updatePages()
 
         }
 
-        /*
-                if(currentSource == STDOUT)
-                {
-                    /// TODO exctract open/close
-                    std::ifstream myfile;
-                    std::string line;
-                    myfile.open ("GRO_stdout.txt");
 
-                    if (myfile.is_open())
-                    {
-                        while ( getline (myfile,line) )
-                        {
-                            book.at(currentSource).push_back(line);
-                        }
-                    }
-                    // clear file
-                    remove( "GRO_stdout.txt" );
-                }*/
+        if(currentSource == DMESG)
+        {
+            system("dmesg -T > GRO_dmesg.txt");
+            /// TODO exctract open/close
+
+            std::ifstream myfile;
+            std::string line;
+            myfile.open ("GRO_dmesg.txt");
+
+            if (myfile.is_open())
+            {
+                unsigned int i = book.at(DMESG).size();
+                // jump over old logs
+                while(i > 0)
+                {
+                    getline (myfile,line);
+                    i--;
+                }
+                // save new ones
+                while ( getline (myfile,line) )
+                {
+                    book.at(currentSource).push_back(line);
+                }
+            }
+
+        }
+
+        if(currentSource == STDERR)
+        {
+    fprintf(stderr, "GRO: This is a stderr check\n");
+            fflush(stderr);
+
+            /// TODO exctract open/close
+            std::ifstream myfile;
+            std::string line;
+            myfile.open ("GRO_stderr.txt");
+
+            if (myfile.is_open())
+            {
+
+                unsigned int i = book.at(STDERR).size();
+
+                // jump over old logs
+                while(i > 0)
+                {
+                    getline (myfile,line);
+                    i--;
+                }
+                // save new ones
+                while ( getline (myfile,line) )
+                {
+                    book.at(currentSource).push_back(line);
+                }
+            }
+        }
     }
 }
 
@@ -185,6 +252,12 @@ std::string DataTextual::getNameOfCurrentPage()
         return "cout";
     case CERR:
         return "cerr";
+    case STDOUT:
+        return "stdout";
+    case STDERR:
+        return "stderr";
+    case DMESG:
+        return "dmesg";
     }
 }
 

@@ -235,8 +235,8 @@ void ScreenModule::printDataPad()
     {
         if (this->lines == 0)
         {
-            /// do nothing
-            //prefresh(module, 0, 0, posY+1, posX, endY, endX);
+            /// TODO add lear line
+            prefresh(dataPad, 0, 0, posY+1, posX, endY, endX);
         }
         else
         {
@@ -312,12 +312,10 @@ void ScreenModule::flipPage()
 {
     if( this->textMode && this->dataTextual )
     {
-        std::cerr << "GRO: flip"<< std::endl;
-
         dataTextual->flipPage();
 
         ///TODO change title
-        title = "\t Streaming: " + dataTextual->getNameOfCurrentPage();
+        title = "\t Streaming: " + dataTextual->getNameOfCurrentPage() + "                ";
 
         //draw text first to get new line counting
         drawCurrentText();

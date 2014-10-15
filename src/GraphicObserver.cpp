@@ -12,33 +12,16 @@ GraphicObserver::GraphicObserver()
 
     this->dataTextual->addTextSource( CERR );
     this->dataTextual->addTextSource( COUT );
+   // this->dataTextual->addTextSource( STDOUT ); // NOTE: ncurses uses STDOUT for terminal control sequences
+    this->dataTextual->addTextSource( STDERR );
+
     this->dataTextual->changePageTo( COUT );
 
-    /// start ncurses
-
-    initscr(); // start curses mode
-    cbreak(); // disable line buffering, do send signals with CTRL+C
-    noecho(); // don't show input at cursor
-    keypad(stdscr, TRUE);   // to use F keys
-    timeout(-1); // getch waits for user input
-    if (getenv ("ESCDELAY") == NULL) ESCDELAY = 25; // fixes some internal delay for esc key
-
-    start_color();		    // color mode
-    use_default_colors();	// use terminal default colors
-    curs_set(0);            // hide blinking cursor
-
-    refresh();	// init call
-
-    /// ncurses color palette
-
-    init_pair(1, COLOR_BLACK, COLOR_CYAN);  // active titleBar
-    init_pair(2, -1, COLOR_BLUE); // deactive titleBar
-    init_pair(3, COLOR_RED, -1); // cursor
-    init_pair(4, COLOR_BLUE, -1); // text highlight
+    testOutput();
 
     /// add screen modules
+        initNCurses();
 
-    getmaxyx( stdscr, windowHeight, windowWidth ); // y, x
     graphicsRunning = false;
 
     this->roofModule = new ScreenModule( 0, dataTabular, dataTextual );
@@ -65,7 +48,7 @@ GraphicObserver::GraphicObserver()
     this->dataModule->setTitle(title);
     this->dataModule->setModuleSelected(true);
 
-    title = "   #   Streaming: cout";
+    title = "   #   Streaming: " + dataTextual->getNameOfCurrentPage() + "         ";
     this->textModule->setTitle(title);
     this->textModule->setTextMode(true);
 
@@ -83,11 +66,11 @@ GraphicObserver::GraphicObserver()
     //Command* configMode = new Command( KEY_F(3), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F3]Config" );
     //Command* controlF4 = new Command( KEY_F(4), std::bind(&DataPort::inputMode, dataPort, screenModuleHandler), " [F4]Parameters", true );
     Command* refresh = new Command( KEY_F(10), std::bind(&ScreenModuleHandler::reprintScreen, screenModuleHandler), " [F10]Refresh Graphics");
-    Command* tgglSource = new Command( KEY_F(4), std::bind(&ScreenModule::flipPage, textModule), " [F4]Tggl Text");
+    Command* flipSource = new Command( KEY_F(4), std::bind(&ScreenModule::flipPage, textModule), " [F4]Flip Text");
 
     this->fbarModule->addCommand( quit );
     this->fbarModule->addCommand( test );
-    this->fbarModule->addCommand( tgglSource );
+    this->fbarModule->addCommand( flipSource );
     this->fbarModule->addCommand( refresh );
 
 
@@ -108,6 +91,32 @@ void GraphicObserver::close()
     delete dataModule;
     delete textModule;
     delete fbarModule;
+    std::cout << "GRO: Deletetion finished" << std::endl;
+}
+
+void GraphicObserver::initNCurses()
+{
+    initscr(); // start curses mode
+    cbreak(); // disable line buffering, do send signals with CTRL+C
+    noecho(); // don't show input at cursor
+    keypad(stdscr, TRUE);   // to use F keys
+    timeout(-1); // getch waits for user input
+    if (getenv ("ESCDELAY") == NULL) ESCDELAY = 25; // fixes some internal delay for esc key
+
+    start_color();		    // color mode
+    use_default_colors();	// use terminal default colors
+    curs_set(0);            // hide blinking cursor
+
+    refresh();	// init call
+
+    /// ncurses color palette
+
+    init_pair(1, COLOR_BLACK, COLOR_CYAN);  // active titleBar
+    init_pair(2, -1, COLOR_BLUE); // deactive titleBar
+    init_pair(3, COLOR_RED, -1); // cursor
+    init_pair(4, COLOR_BLUE, -1); // text highlight
+
+    std::cout << "GRO: set up nCurses" << std::endl;
 }
 
 GraphicObserver& GraphicObserver::getInstance()
@@ -117,20 +126,24 @@ GraphicObserver& GraphicObserver::getInstance()
     return *instance;
 }
 
-void GraphicObserver::startObserving() {}
+void GraphicObserver::startObserving() {
+    /// NOTE: dummy call
+    // since calling will prime the GRO instance, dataTabular and dataTextual will be created
+}
 
 void GraphicObserver::startGraphics()
 {
     // if graphics aren't already started (to avoid two blocking getch() calls)
     if( !graphicsRunning )
     {
+        //initNCurses();
         graphicsRunning = true;
 
         //add some timing info
         GRO_update("starttime", CLK_printStartTime());
 
         // draw everthing
-        screenModuleHandler->reprintScreen();
+       screenModuleHandler->reprintScreen();
 
         std::cout << "GRO: Start graphic updating"<< std::endl;
 
@@ -205,6 +218,7 @@ void GraphicObserver::setHorizontalRatio(double val)
 
 void GraphicObserver::testOutput(void)
 {
-    std::cout << "GRO: test line"<< std::endl;
-    std::cerr << "GRO: test line"<< std::endl;
+    std::cout << "GRO: This is a std::cout test line"<< std::endl;
+    std::cerr << "GRO: This is a std::cerr test line"<< std::endl;
+    fprintf(stderr, "GRO: This is a stderr test line\n");
 }
