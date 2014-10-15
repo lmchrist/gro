@@ -78,8 +78,16 @@ void ScreenModule::printTitlePad()
         {
             wbkgd(titlePad, COLOR_PAIR(1));
         }
+
+            //determine titlePad positioning
+            int x = cursorX;
+            if ( cursorX > width - (endX - posX ) - 1 )
+            {
+                x = width - (endX - posX) - 1;
+            }
+            // realign titlePad
         mvwaddstr( titlePad, 0, 1, title.c_str() );
-        prefresh( titlePad, 0, 0, posY, posX, posY+1, endX );
+        prefresh( titlePad, 0, x, posY, posX, posY+1, endX );
     }
 }
 
@@ -116,6 +124,7 @@ void ScreenModule::moveCursor( int y, int x )
             }
         }
         drawCurrentCursor();
+        printTitlePad();
         printDataPad();
     }
 }
@@ -158,7 +167,7 @@ void ScreenModule::drawCurrentData()
                     tmp = std::to_string( currentLine ) + "   \t" + it->first + " ";
                     length = tmp.length();
                     ///TODO cap string at indent length
-                    for(int j = tabularIndent - length; j > 0; j--)
+                    for(int j = tabularIndent - length + std::to_string( currentLine ).length() -1; j > 0; j--) //currentLine fixes decimal positions
                     {
                         tmp += ".";
                     }
@@ -189,8 +198,17 @@ void ScreenModule::drawCurrentData()
                         // else normal color
                         waddstr(dataPad, tmp.c_str());
                     }
+                    tmp = " \t | ";
+                    waddstr( dataPad, tmp.c_str() );
 
-                    tmp = " \t | " + it->second.value + "\n";
+                    tmp = it->second.value;
+
+                    // value with brackground, to see whitspaces
+                    wattron( dataPad, COLOR_PAIR( 4 ) );
+                    waddstr( dataPad, tmp.c_str() );
+                    wattroff( dataPad, COLOR_PAIR( 4 ) );
+
+                    tmp = "\n";
                     waddstr( dataPad, tmp.c_str() );
 
                     currentLine--;
@@ -321,7 +339,7 @@ void ScreenModule::flipPage()
         //draw text first to get new line counting
         drawCurrentText();
         // update cursor
-                moveCursor(0,0); ///NOTE: maybe move cursor down
+        moveCursor(height,0); ///NOTE: maybe move cursor down
         printDataPad();
         printTitlePad();
     }

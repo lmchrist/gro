@@ -70,9 +70,10 @@ void GraphicObserver::initNCurses()
 
     /// ncurses color palette
 
-    init_pair(1, COLOR_BLACK, COLOR_CYAN);  // active titleBar
-    init_pair(2, -1, COLOR_BLUE); // deactive titleBar
-    init_pair(3, COLOR_RED, -1); // cursor
+    init_pair(1, COLOR_BLACK, COLOR_CYAN);  // deactive titleBar
+    init_pair(2, -1, COLOR_BLUE); // active titleBar
+    init_pair(3, COLOR_RED, -1); // cursor & highlights
+    init_pair(4, -1, COLOR_BLACK); // string background
 }
 
 void GraphicObserver::configureScreen()
@@ -94,8 +95,9 @@ void GraphicObserver::configureScreen()
     this->roofModule->setBodyVisibility(false);
     std::string title = "GRO - Graphic Observer (ProcessID: " + std::to_string(getpid()) + ")";
     this->roofModule->setTitle(title);
+    this->roofModule->setModuleSelected(true);
 
-    title = "    #\t        variable                             updates last sec\t | value";
+    title = "    #\t        variable                          updates in last sec\t | value";
     this->dataModule->setTitle(title);
     this->dataModule->setModuleSelected(true);
 
@@ -107,23 +109,17 @@ void GraphicObserver::configureScreen()
 
     /// set up bar commands
 
-    Command* test = new Command( 't', std::bind(&GraphicObserver::testOutput, this), " [t]Test");
     Command* quit = new Command( 27, std::bind(&ScreenModuleHandler::dummy, screenModuleHandler), "[Esc]Quit" );
-
-    // set up Bar commands -------------------
-    //Command* helpMode = new Command( KEY_F(1), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F1]Notes" );
-    //Command* controlMode = new Command( KEY_F(2), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F2]Controls" );
-    //Command* configMode = new Command( KEY_F(3), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F3]Config" );
-    //Command* controlF4 = new Command( KEY_F(4), std::bind(&DataPort::inputMode, dataPort, screenModuleHandler), " [F4]Parameters", true );
-    Command* refresh = new Command( KEY_F(10), std::bind(&ScreenModuleHandler::reprintScreen, screenModuleHandler), " [F10]Refresh Graphics");
-    Command* flipSource = new Command( KEY_F(4), std::bind(&ScreenModule::flipPage, textModule), " [F4]Flip Text");
+    Command* refresh =  new Command( KEY_F(16), std::bind(&ScreenModuleHandler::reprintScreen, screenModuleHandler), " [F6]Refresh Graphics");
+    Command* flipSource = new Command( KEY_F(5), std::bind(&ScreenModule::flipPage, textModule), " [F5]Flip Streams");
     Command* signal = new Command( KEY_F(5), std::bind(&GraphicObserver::generateSignal, this), " [F5]Signal");
+    Command* test = new Command( 't', std::bind(&GraphicObserver::testOutput, this), " [t]Debug Output");
 
     this->fbarModule->addCommand( quit );
     this->fbarModule->addCommand( test );
     this->fbarModule->addCommand( flipSource );
     this->fbarModule->addCommand( refresh );
-    this->fbarModule->addCommand( signal );
+    //this->fbarModule->addCommand( signal );
 }
 
 GraphicObserver& GraphicObserver::getInstance()
@@ -135,7 +131,7 @@ GraphicObserver& GraphicObserver::getInstance()
 
 void GraphicObserver::startGraphics()
 {
-        testOutput();
+    testOutput();
 
     // if graphics aren't already started (to avoid two blocking getch() calls)
     if( !graphicsRunning )
@@ -147,7 +143,7 @@ void GraphicObserver::startGraphics()
         configureScreen();
 
         //add some timing info
-        GRO_update("GRO starttime", CLK_printStartTime());
+        GRO_update("GRO() starttime", CLK_printStartTime());
 
         // draw everthing
         screenModuleHandler->reprintScreen();

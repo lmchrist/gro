@@ -4,9 +4,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
-
-
-#include <typeinfo>
+#include <string.h>
 
 void signalHandler( int sig )
 {
@@ -17,7 +15,7 @@ void signalHandler( int sig )
 
 
     GRO_close();
-    printf( "Return to terminal" );
+    printf( "Return to terminal\n" );
     fflush(stdout);
 
     exit( 1 );
@@ -25,17 +23,7 @@ void signalHandler( int sig )
 
 int main(int argc, char* argv[])
 {
-    // add flag to start GRO optionally
-    /* if( argc > 1 )
-     {
-         for(int i = 0; i < argc; i++)
-         {
-             if(*argv[i] == '-gro')
-             {
-                 GRO_startGraphics();
-             }
-         }
-     }*/
+
     signal( SIGSEGV, signalHandler );
     signal( SIGABRT, signalHandler );
     signal( SIGTERM, signalHandler );
@@ -49,8 +37,19 @@ int main(int argc, char* argv[])
     GRO_update("you are here:", "earth");
     GRO_update("avogadro constant", 6.022e+23);
     GRO_update("an int", 1);
+    GRO_update("string with exceeding whitespaces", "txt     ");
 
-    GRO_startGraphics();
+    GRO_update("argc",argc);
+
+    // start GRO optionally via -gro flag
+    for(int i = 0; i < argc; i++)
+    {
+        if(strcmp( argv[i], "-gro") == 0)
+        {
+            GRO_startGraphics();
+        }
+    }
+
 
     // this will be still catch by GRO
     std::cout << "GRO: Reached end of main() " << std::endl;

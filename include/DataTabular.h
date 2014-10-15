@@ -17,9 +17,9 @@ struct DataItem
     DataItem( std::string _value, unsigned int _breaks )
     {
         value = _value;
-        updates = 0;
+        updates = 1;
         breaks = _breaks;
-        lastPrintedUpdates = 0;
+        lastPrintedUpdates = 1;
     }
 };
 

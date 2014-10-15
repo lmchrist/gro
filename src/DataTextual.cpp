@@ -143,7 +143,7 @@ void DataTextual::updatePages()
             observeSource(CERR, 0);
             break;
         case DMESG:
-            observeSource(DMESG, 7);
+            observeSource(DMESG, 0);
             break;
         case STDERR:
             fflush(stderr);

@@ -33,13 +33,13 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="CMakeLists.txt" />
 		<Unit filename="build/CMakeFiles/2.8.12.2/CompilerIdC/CMakeCCompilerId.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="build/CMakeFiles/2.8.12.2/CompilerIdCXX/CMakeCXXCompilerId.cpp" />
 		<Unit filename="include/Clock.h" />
 		<Unit filename="include/Command.h" />
-		<Unit filename="include/DataBlock.h" />
 		<Unit filename="include/DataTabular.h" />
 		<Unit filename="include/DataTextual.h" />
 		<Unit filename="include/GraphicObserver.h" />
@@ -47,7 +47,6 @@
 		<Unit filename="include/ScreenModuleHandler.h" />
 		<Unit filename="src/Clock.cpp" />
 		<Unit filename="src/Command.cpp" />
-		<Unit filename="src/DataBlock.cpp" />
 		<Unit filename="src/DataTabular.cpp" />
 		<Unit filename="src/DataTextual.cpp" />
 		<Unit filename="src/GraphicObserver.cpp" />
