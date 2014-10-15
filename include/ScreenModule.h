@@ -39,6 +39,7 @@ public:
     void setModuleSelected( bool val );
     bool isModuleSelected();
     void setTextMode( bool val );
+    void tglJumpOnData( );
 
     void rescale( unsigned int posY, unsigned int posX, unsigned int endY, unsigned int endX );
     void flipPage();
@@ -57,7 +58,7 @@ private:
 
     unsigned int lines, ID = 0;
     std::string title;
-    bool showTitle, showBody, moduleSelected, textMode;
+    bool showTitle, showBody, moduleSelected, textMode, jumpOnData;
 
     unsigned int width = 1000;   //pad width
     unsigned int height = 10000; //pad height

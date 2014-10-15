@@ -114,10 +114,12 @@ void GraphicObserver::configureScreen()
     Command* flipSource = new Command( KEY_F(5), std::bind(&ScreenModule::flipPage, textModule), " [F5]Flip Streams");
     Command* signal = new Command( KEY_F(5), std::bind(&GraphicObserver::generateSignal, this), " [F5]Signal");
     Command* test = new Command( 't', std::bind(&GraphicObserver::testOutput, this), " [t]Debug Output");
+    Command* jumpOnData = new Command( 'j', std::bind(&ScreenModule::tglJumpOnData, textModule), " [j]Tggl Jumping");
 
     this->fbarModule->addCommand( quit );
     this->fbarModule->addCommand( test );
     this->fbarModule->addCommand( flipSource );
+    this->fbarModule->addCommand( jumpOnData );
     this->fbarModule->addCommand( refresh );
     //this->fbarModule->addCommand( signal );
 }

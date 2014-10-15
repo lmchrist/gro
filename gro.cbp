@@ -46,7 +46,6 @@
 		<Unit filename="include/ScreenModule.h" />
 		<Unit filename="include/ScreenModuleHandler.h" />
 		<Unit filename="src/Clock.cpp" />
-		<Unit filename="src/Command.cpp" />
 		<Unit filename="src/DataTabular.cpp" />
 		<Unit filename="src/DataTextual.cpp" />
 		<Unit filename="src/GraphicObserver.cpp" />

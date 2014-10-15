@@ -20,6 +20,7 @@ ScreenModule::ScreenModule( unsigned int ID, DataTabular* dataTabular, DataTextu
     this->showBody = true;
     this->secondElapsed = true;
     this->textMode = false;
+    this->jumpOnData = false;
 
     /// add commands
 
@@ -79,13 +80,13 @@ void ScreenModule::printTitlePad()
             wbkgd(titlePad, COLOR_PAIR(1));
         }
 
-            //determine titlePad positioning
-            int x = cursorX;
-            if ( cursorX > width - (endX - posX ) - 1 )
-            {
-                x = width - (endX - posX) - 1;
-            }
-            // realign titlePad
+        //determine titlePad positioning
+        int x = cursorX;
+        if ( cursorX > width - (endX - posX ) - 1 )
+        {
+            x = width - (endX - posX) - 1;
+        }
+        // realign titlePad
         mvwaddstr( titlePad, 0, 1, title.c_str() );
         prefresh( titlePad, 0, x, posY, posX, posY+1, endX );
     }
@@ -234,7 +235,14 @@ void ScreenModule::drawCurrentText()
             if( page->size() > 0 )
             {
                 wclear(dataPad);
-                drawCurrentCursor();
+                if( jumpOnData )
+                {
+                    moveCursor(height,cursorX);
+                }
+                else
+                {
+                    moveCursor(0,cursorX);
+                }
                 for(auto it = page->begin(); it != page->end(); it++ )
                 {
                     tmp = std::to_string( currentLine ) + "   \t" + *it + "\n";
@@ -339,7 +347,7 @@ void ScreenModule::flipPage()
         //draw text first to get new line counting
         drawCurrentText();
         // update cursor
-        moveCursor(height,0); ///NOTE: maybe move cursor down
+        moveCursor(height - 1,0); ///NOTE: maybe move cursor down
         printDataPad();
         printTitlePad();
     }
@@ -402,4 +410,9 @@ void ScreenModule::setTextMode( bool val )
 bool ScreenModule::isModuleSelected()
 {
     return moduleSelected;
+}
+void ScreenModule::tglJumpOnData()
+{
+   jumpOnData = !jumpOnData;
+    GRO_update("jumpOnData", jumpOnData); //NOTE: for debug
 }
