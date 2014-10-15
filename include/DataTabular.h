@@ -36,6 +36,7 @@ public:
 
     void update( const std::string& key, const std::string& value, const unsigned int& breaks = 1 );
 
+    void update( const std::string& key, const char*  value );
     void update( const std::string& key, const bool& value );
     void update( const std::string& key, const int& value );
     void update( const std::string& key, const long int& value );

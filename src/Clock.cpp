@@ -2,7 +2,7 @@
 
 Clock::Clock()
 {
-    timestamp_start = millisecSinceEpoch();
+    clockStart = std::chrono::system_clock::now();
 }
 
 Clock::~Clock()
@@ -19,15 +19,19 @@ Clock* Clock::getInstance()
 
 std::string Clock::printStartTime()
 {
-    std::cout << timestamp_start << std::endl;
-
-    return "TODO";
-    //return convertMillisecToString( timestamp_start );
+    std::time_t t = std::chrono::system_clock::to_time_t(clockStart);
+    char mbstr[100];
+    if (std::strftime(mbstr, sizeof(mbstr), "%T", std::localtime(&t))) {
+        return mbstr;
+    }
+    return "";
 }
 
 std::string Clock::printTimeSinceStart()
 {
-    return convertMillisecToString( millisecSinceEpoch() - timestamp_start );
+    auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - clockStart);
+    return convertMillisecToString( millisec.count() );
+
 }
 
 unsigned int Clock::millisecSinceEpoch()
@@ -37,11 +41,22 @@ unsigned int Clock::millisecSinceEpoch()
 
 std::string Clock::convertMillisecToString(unsigned int millisec)
 {
+    ///NOTE: only for values smaller than one day
+    ///TODO: make this faster
     double secs = millisec/1000;
     int hours = secs/3600;
     secs -= 3600*hours;
     int minutes = secs/60;
     secs -= 60*minutes;
-
-    return std::to_string(hours) + ":" + std::to_string(minutes) + ":" + std::to_string((int)secs);
+    std::string tmp;
+    if( hours < 10)
+        tmp+= "0";
+    tmp+=std::to_string(hours)+ ":";
+    if( minutes < 10)
+        tmp+= "0";
+    tmp += std::to_string(minutes) + ":";
+    if(secs < 10)
+        tmp+="0";
+    tmp +=std::to_string((int)secs);
+    return tmp;
 }

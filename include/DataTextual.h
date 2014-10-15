@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include <ctime>
 
 #include <string>
 
@@ -26,18 +27,28 @@ public:
     Page* getCurrentPage();
     std::string getNameOfCurrentPage();
     void changePageTo( TextSource src );
+    std::string generateFilenameOf( TextSource src );
+
     void flipPage();
+
+    void setBackupPath(std::string);
+    void saveSource( TextSource src );
 
     Book* getBook();
 
 protected:
 private:
     void updatePages();
+
+    void observeSource(TextSource src, unsigned int offset);
+
     Book book;
     TextSource currentSource;
 
     bool keepRunning = true;
     static std::thread* streamObserver;
+
+    std::string backupPath = ".";
 
     // COUT
     std::ofstream f_cout;

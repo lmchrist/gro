@@ -41,7 +41,10 @@ void DataTabular::update( const std::string& key, const std::string& value, cons
 
 
 /// methods to update single values
-
+void DataTabular::update( const std::string& key, const char*  value )
+{
+    update( key, (std::string)value );
+}
 void DataTabular::update( const std::string& key, const bool& value )
 {
     update( key, translate(value) );

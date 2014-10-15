@@ -180,9 +180,9 @@ void ScreenModule::drawCurrentData()
                     // updates > 0 in cyan
                     if( it->second.lastPrintedUpdates > 0)
                     {
-                        wattron(dataPad, A_BOLD | COLOR_PAIR(4));
+                        wattron(dataPad, A_BOLD | COLOR_PAIR(3));
                         waddstr(dataPad, tmp.c_str());
-                        wattroff(dataPad, A_BOLD | COLOR_PAIR(4));
+                        wattroff(dataPad, A_BOLD | COLOR_PAIR(3));
                     }
                     else
                     {
@@ -236,6 +236,7 @@ void ScreenModule::printDataPad()
         if (this->lines == 0)
         {
             /// TODO add lear line
+            wclear(dataPad);
             prefresh(dataPad, 0, 0, posY+1, posX, endY, endX);
         }
         else
@@ -315,7 +316,7 @@ void ScreenModule::flipPage()
         dataTextual->flipPage();
 
         ///TODO change title
-        title = "\t Streaming: " + dataTextual->getNameOfCurrentPage() + "                ";
+        title = "    #\t        streaming " + dataTextual->getNameOfCurrentPage() + "       ";
 
         //draw text first to get new line counting
         drawCurrentText();

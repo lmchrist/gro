@@ -30,7 +30,7 @@ private:
 
     std::string convertMillisecToString(unsigned int);
 
-    unsigned int timestamp_start;
+    std::chrono::time_point<std::chrono::system_clock> clockStart;
 };
 
 #endif // CLOCK_H

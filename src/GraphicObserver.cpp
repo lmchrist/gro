@@ -10,71 +10,11 @@ GraphicObserver::GraphicObserver()
     this->dataTabular = new DataTabular();
     this->dataTextual = new DataTextual();
 
-    this->dataTextual->addTextSource( CERR );
-    this->dataTextual->addTextSource( COUT );
-   // this->dataTextual->addTextSource( STDOUT ); // NOTE: ncurses uses STDOUT for terminal control sequences
-    this->dataTextual->addTextSource( STDERR );
+    initNCurses();
 
-    this->dataTextual->changePageTo( COUT );
-
-    testOutput();
-
-    /// add screen modules
-        initNCurses();
+    this->screenModuleHandler = new ScreenModuleHandler( 0, 1, 2, 3 ); // init ScreenHandler here to access horizontal ratio
 
     graphicsRunning = false;
-
-    this->roofModule = new ScreenModule( 0, dataTabular, dataTextual );
-    this->dataModule = new ScreenModule( 1, dataTabular, dataTextual );
-    this->textModule = new ScreenModule( 2, dataTabular, dataTextual );
-    this->fbarModule = new ScreenModule( 3, dataTabular, dataTextual );
-
-    this->screenModuleHandler = new ScreenModuleHandler( 0, 1, 2, 3 );
-
-    screenModuleHandler->addScreenModule(roofModule);
-    screenModuleHandler->addScreenModule(dataModule);
-    screenModuleHandler->addScreenModule(textModule);
-    screenModuleHandler->addScreenModule(fbarModule);
-
-    screenModuleHandler->setHorizontalRatio(0.5);
-
-    /// configure screen modules
-
-    this->roofModule->setBodyVisibility(false);
-    std::string title = "GRO - Graphic Observer (ProcessID: " + std::to_string(getpid()) + ")";
-    this->roofModule->setTitle(title);
-
-    title = "    #\t        variable                             updates last sec\t | value";
-    this->dataModule->setTitle(title);
-    this->dataModule->setModuleSelected(true);
-
-    title = "   #   Streaming: " + dataTextual->getNameOfCurrentPage() + "         ";
-    this->textModule->setTitle(title);
-    this->textModule->setTextMode(true);
-
-    this->fbarModule->setTitleVisibility(false);
-
-
-    /// set up bar commands
-
-    Command* test = new Command( 't', std::bind(&GraphicObserver::testOutput, this), " [t]Test");
-    Command* quit = new Command( 27, std::bind(&ScreenModuleHandler::dummy, screenModuleHandler), "[Esc]Quit" );
-
-    // set up Bar commands -------------------
-    //Command* helpMode = new Command( KEY_F(1), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F1]Notes" );
-    //Command* controlMode = new Command( KEY_F(2), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F2]Controls" );
-    //Command* configMode = new Command( KEY_F(3), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F3]Config" );
-    //Command* controlF4 = new Command( KEY_F(4), std::bind(&DataPort::inputMode, dataPort, screenModuleHandler), " [F4]Parameters", true );
-    Command* refresh = new Command( KEY_F(10), std::bind(&ScreenModuleHandler::reprintScreen, screenModuleHandler), " [F10]Refresh Graphics");
-    Command* flipSource = new Command( KEY_F(4), std::bind(&ScreenModule::flipPage, textModule), " [F4]Flip Text");
-
-    this->fbarModule->addCommand( quit );
-    this->fbarModule->addCommand( test );
-    this->fbarModule->addCommand( flipSource );
-    this->fbarModule->addCommand( refresh );
-
-
-    std::cout << "GRO: Initialized"<< std::endl;
 }
 
 GraphicObserver::~GraphicObserver()
@@ -84,15 +24,34 @@ GraphicObserver::~GraphicObserver()
 
 void GraphicObserver::close()
 {
-    std::cout << "GRO: Delete objects" << std::endl;
+    this->stopGraphics();
     delete dataTabular;
+    dataTabular = nullptr;
     delete dataTextual;
-    delete roofModule;
-    delete dataModule;
-    delete textModule;
-    delete fbarModule;
-    std::cout << "GRO: Deletetion finished" << std::endl;
+    dataTextual = nullptr;
+    delete screenModuleHandler;
+    screenModuleHandler = nullptr;
+    std::cout << "GRO: Deleted" << std::endl;
 }
+
+void GraphicObserver::stopGraphics()
+{
+    if( !isendwin() )
+    {
+        endwin();	// end curses mode
+        delete roofModule;
+        roofModule = nullptr;
+        delete dataModule;
+        dataModule = nullptr;
+        delete textModule;
+        textModule = nullptr;
+        delete fbarModule;
+        fbarModule = nullptr;
+        screenModuleHandler->removeModule();
+        std::cout << "GRO: Left graphic mode" << std::endl;
+    }
+};
+
 
 void GraphicObserver::initNCurses()
 {
@@ -114,9 +73,57 @@ void GraphicObserver::initNCurses()
     init_pair(1, COLOR_BLACK, COLOR_CYAN);  // active titleBar
     init_pair(2, -1, COLOR_BLUE); // deactive titleBar
     init_pair(3, COLOR_RED, -1); // cursor
-    init_pair(4, COLOR_BLUE, -1); // text highlight
+}
 
-    std::cout << "GRO: set up nCurses" << std::endl;
+void GraphicObserver::configureScreen()
+{
+    /// add screen modules
+
+    this->roofModule = new ScreenModule( 0, dataTabular, dataTextual );
+    this->dataModule = new ScreenModule( 1, dataTabular, dataTextual );
+    this->textModule = new ScreenModule( 2, dataTabular, dataTextual );
+    this->fbarModule = new ScreenModule( 3, dataTabular, dataTextual );
+
+    screenModuleHandler->addScreenModule(roofModule);
+    screenModuleHandler->addScreenModule(dataModule);
+    screenModuleHandler->addScreenModule(textModule);
+    screenModuleHandler->addScreenModule(fbarModule);
+
+    /// configure screen modules
+
+    this->roofModule->setBodyVisibility(false);
+    std::string title = "GRO - Graphic Observer (ProcessID: " + std::to_string(getpid()) + ")";
+    this->roofModule->setTitle(title);
+
+    title = "    #\t        variable                             updates last sec\t | value";
+    this->dataModule->setTitle(title);
+    this->dataModule->setModuleSelected(true);
+
+    title = "    #\t        streaming " + dataTextual->getNameOfCurrentPage() + "       ";
+    this->textModule->setTitle(title);
+    this->textModule->setTextMode(true);
+
+    this->fbarModule->setTitleVisibility(false);
+
+    /// set up bar commands
+
+    Command* test = new Command( 't', std::bind(&GraphicObserver::testOutput, this), " [t]Test");
+    Command* quit = new Command( 27, std::bind(&ScreenModuleHandler::dummy, screenModuleHandler), "[Esc]Quit" );
+
+    // set up Bar commands -------------------
+    //Command* helpMode = new Command( KEY_F(1), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F1]Notes" );
+    //Command* controlMode = new Command( KEY_F(2), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F2]Controls" );
+    //Command* configMode = new Command( KEY_F(3), std::bind(&ScreenModuleHandler::switchModules, screenModuleHandler), " [F3]Config" );
+    //Command* controlF4 = new Command( KEY_F(4), std::bind(&DataPort::inputMode, dataPort, screenModuleHandler), " [F4]Parameters", true );
+    Command* refresh = new Command( KEY_F(10), std::bind(&ScreenModuleHandler::reprintScreen, screenModuleHandler), " [F10]Refresh Graphics");
+    Command* flipSource = new Command( KEY_F(4), std::bind(&ScreenModule::flipPage, textModule), " [F4]Flip Text");
+    Command* signal = new Command( KEY_F(5), std::bind(&GraphicObserver::generateSignal, this), " [F5]Signal");
+
+    this->fbarModule->addCommand( quit );
+    this->fbarModule->addCommand( test );
+    this->fbarModule->addCommand( flipSource );
+    this->fbarModule->addCommand( refresh );
+    this->fbarModule->addCommand( signal );
 }
 
 GraphicObserver& GraphicObserver::getInstance()
@@ -126,27 +133,24 @@ GraphicObserver& GraphicObserver::getInstance()
     return *instance;
 }
 
-void GraphicObserver::startObserving() {
-    /// NOTE: dummy call
-    // since calling will prime the GRO instance, dataTabular and dataTextual will be created
-}
-
 void GraphicObserver::startGraphics()
 {
+        testOutput();
+
     // if graphics aren't already started (to avoid two blocking getch() calls)
     if( !graphicsRunning )
     {
-        //initNCurses();
+        std::cout << "GRO: Enter graphic mode"<< std::endl;
+
         graphicsRunning = true;
 
+        configureScreen();
+
         //add some timing info
-        GRO_update("starttime", CLK_printStartTime());
+        GRO_update("GRO starttime", CLK_printStartTime());
 
         // draw everthing
-       screenModuleHandler->reprintScreen();
-
-        std::cout << "GRO: Start graphic updating"<< std::endl;
-
+        screenModuleHandler->reprintScreen();
 
         // if updater isn't already running
         if(!graphicUpdater)
@@ -164,7 +168,7 @@ void GraphicObserver::startGraphics()
             {
                 graphicsRunning = false;
                 graphicUpdater->join(); // wait for graphicUpdater to finish
-                endwin();	// end curses mode
+
             }
             else
             {
@@ -174,13 +178,18 @@ void GraphicObserver::startGraphics()
         }
         ///IMPORTANT: close here, otherwise callCommands will be distorted
 
-        this->close();
+        this->stopGraphics();
     }
 }
 
 DataTabular* GraphicObserver::getDataTable()
 {
     return this->dataTabular;
+}
+
+DataTextual* GraphicObserver::getDataTextual()
+{
+    return this->dataTextual;
 }
 
 void GraphicObserver::updateGraphics()
@@ -192,7 +201,7 @@ void GraphicObserver::updateGraphics()
     while( graphicsRunning )
     {
         std::this_thread::sleep_for( std::chrono::milliseconds( wait ) );
-        GRO_update("time since program start", CLK_printTimeSinceStart());
+        GRO_update("time since starttime", CLK_printTimeSinceStart());
         GRO_update("millisec since epoch", CLK_millisecSinceEpoch() );
 
         flipper = !flipper;
@@ -216,9 +225,15 @@ void GraphicObserver::setHorizontalRatio(double val)
     }
 }
 
+void GraphicObserver::generateSignal()
+{
+    std::cout << "GRO: Raised signal"<< std::endl;
+    raise (SIGSEGV);
+}
+
 void GraphicObserver::testOutput(void)
 {
-    std::cout << "GRO: This is a std::cout test line"<< std::endl;
-    std::cerr << "GRO: This is a std::cerr test line"<< std::endl;
-    fprintf(stderr, "GRO: This is a stderr test line\n");
+    std::cout << "GRO: std::cout test line"<< std::endl;
+    std::cerr << "GRO: std::cerr test line"<< std::endl;
+    fprintf(stderr, "GRO: stderr test line\n");
 }

@@ -27,8 +27,12 @@ ScreenModuleHandler::ScreenModuleHandler( unsigned int roofID, unsigned int uppe
 
 void ScreenModuleHandler::setHorizontalRatio( double val )
 {
-    horizontalRatio = val;
-    /// NOTE: maybe redraw screen?
+    if( val < 0)
+        horizontalRatio = 0;
+    else if( val > 1)
+        horizontalRatio = 1;
+    else
+        horizontalRatio = val;
 }
 
 void ScreenModuleHandler::addScreenModule( ScreenModule* screenModule )
@@ -54,10 +58,13 @@ void ScreenModuleHandler::callCommands( int input )
     // check through modules
     for( auto it = screenModuleIDs.begin(); it!= screenModuleIDs.end(); it++ )
     {
-            screenModules.at(*it)->callCommands(input );
+        screenModules.at(*it)->callCommands(input );
     }
 }
-
+void ScreenModuleHandler::removeModule( )
+{
+    screenModules.clear();
+}
 void ScreenModuleHandler::reprintScreen(  )
 {
     refresh(); // to get updated terminal size
@@ -70,12 +77,16 @@ void ScreenModuleHandler::reprintScreen(  )
     ScreenModule* moduleB = screenModules.at( fbarID );
 
     unsigned int h = terminalY*horizontalRatio;   // horizontal split position
+    if( h < 4)
+        h = 4;
+    else if( h > terminalY - 3)
+        h = terminalY - 3;
 
     /// TODO erase screen
 
     moduleR->rescale( 0, 0, 1, terminalX-1 );
     moduleU->rescale( 2, 0, h-1, terminalX - 1 );
-    moduleL->rescale( h+1, 0, terminalY-2, terminalX-1 );
+    moduleL->rescale( h, 0, terminalY-2, terminalX-1 );
     moduleB->rescale( terminalY-2, 0, terminalY-1, terminalX-1);
 
     moduleR->printModule();

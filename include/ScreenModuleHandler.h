@@ -18,8 +18,9 @@ public:
     void reprintScreen();
 
     void callCommands( int input );
+    void removeModule();
 
-    void dummy(){}
+    void dummy() {}
 
     void setHorizontalRatio( double );
 
