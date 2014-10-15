@@ -22,6 +22,7 @@ unsigned int DataTabular::getTotalBreaks()
 
 void DataTabular::update( const std::string& key, const std::string& value, const unsigned int& breaks )
 {
+    updateGuard.lock();
     DataMap::iterator it = dataMap.find( key );
     if ( it != dataMap.end() )
     {
@@ -36,6 +37,7 @@ void DataTabular::update( const std::string& key, const std::string& value, cons
         dataMap.insert( element );
         totalBreaks += breaks;
     }
+    updateGuard.unlock();
 }
 
 

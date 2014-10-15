@@ -3,6 +3,8 @@
 
 #include <unordered_map>
 #include <iostream>
+#include <mutex>
+
 struct DataItem
 {
     std::string value;
@@ -62,6 +64,7 @@ private:
     std::string translate( const double& value );
     std::string translate( const long double& value );
 
+    std::mutex updateGuard;
 };
 
 #endif // DataTabular_H

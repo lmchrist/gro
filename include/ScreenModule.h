@@ -40,6 +40,7 @@ public:
     bool isModuleSelected();
     void setTextMode( bool val );
     void tglJumpOnData( );
+    void userMovesCursor( int y, int x );
 
     void rescale( unsigned int posY, unsigned int posX, unsigned int endY, unsigned int endX );
     void flipPage();

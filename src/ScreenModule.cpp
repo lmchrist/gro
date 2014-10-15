@@ -24,12 +24,12 @@ ScreenModule::ScreenModule( unsigned int ID, DataTabular* dataTabular, DataTextu
 
     /// add commands
 
-    Command* cursorUp = new Command(KEY_UP, std::bind(&ScreenModule::moveCursor, this, -1, 0), "");
-    Command* cursorDown = new Command(KEY_DOWN, std::bind(&ScreenModule::moveCursor, this,1, 0), "" );
-    Command* cursorLeft = new Command(KEY_LEFT, std::bind(&ScreenModule::moveCursor, this,0, -3), "" );
-    Command* cursorRight = new Command(KEY_RIGHT, std::bind(&ScreenModule::moveCursor, this, 0, 3), "" );
-    Command* cursorTop = new Command(KEY_HOME, std::bind(&ScreenModule::moveCursor, this, -height, 0), "" );
-    Command* cursorBottom = new Command(KEY_END, std::bind(&ScreenModule::moveCursor, this, height, 0), "" );
+    Command* cursorUp = new Command(KEY_UP, std::bind(&ScreenModule::userMovesCursor, this, -1, 0), "");
+    Command* cursorDown = new Command(KEY_DOWN, std::bind(&ScreenModule::userMovesCursor, this,1, 0), "" );
+    Command* cursorLeft = new Command(KEY_LEFT, std::bind(&ScreenModule::userMovesCursor, this,0, -3), "" );
+    Command* cursorRight = new Command(KEY_RIGHT, std::bind(&ScreenModule::userMovesCursor, this, 0, 3), "" );
+    Command* cursorTop = new Command(KEY_HOME, std::bind(&ScreenModule::userMovesCursor, this, -height, 0), "" );
+    Command* cursorBottom = new Command(KEY_END, std::bind(&ScreenModule::userMovesCursor, this, height, 0), "" );
 
     this->addCommand( cursorUp );
     this->addCommand( cursorDown );
@@ -94,37 +94,42 @@ void ScreenModule::printTitlePad()
 
 void ScreenModule::moveCursor( int y, int x )
 {
-    if(this->moduleSelected)
+    if ( lines > 0 )
     {
-        if ( lines > 0 )
+        //erase old cursor
+        eraseCurrentCursor();
+        cursorX += x;
+        cursorY += y;
+        if( cursorX < 0 )
         {
-            //erase old cursor
-            eraseCurrentCursor();
-            cursorX += x;
-            cursorY += y;
-            if( cursorX < 0 )
-            {
-                //cursorX = width - (endX - posX);
-                cursorX = 0; // no need for flipping, for now
-            }
-            else if( cursorX > width - (endX - posX) )
-            {
-                //cursorX = 0;
-                cursorX = width - (endX - posX) ;
-
-            }
-            if( cursorY < 0 )
-            {
-                //cursorY += lines;
-                cursorY = 0;
-            }
-            else if( cursorY >= lines )
-            {
-                //cursorY -= lines;
-                cursorY = lines -1 ;
-            }
+            //cursorX = width - (endX - posX);
+            cursorX = 0; // no need for flipping, for now
         }
-        drawCurrentCursor();
+        else if( cursorX > width - (endX - posX) )
+        {
+            //cursorX = 0;
+            cursorX = width - (endX - posX) ;
+
+        }
+        if( cursorY < 0 )
+        {
+            //cursorY += lines;
+            cursorY = 0;
+        }
+        else if( cursorY >= lines )
+        {
+            //cursorY -= lines;
+            cursorY = lines -1 ;
+        }
+    }
+    drawCurrentCursor();
+}
+
+void ScreenModule::userMovesCursor( int y, int x )
+{
+    if( this->moduleSelected )
+    {
+        this->moveCursor(y,x);
         printTitlePad();
         printDataPad();
     }
@@ -241,7 +246,7 @@ void ScreenModule::drawCurrentText()
                 }
                 else
                 {
-                    moveCursor(0,cursorX);
+                    drawCurrentCursor();
                 }
                 for(auto it = page->begin(); it != page->end(); it++ )
                 {
@@ -413,6 +418,6 @@ bool ScreenModule::isModuleSelected()
 }
 void ScreenModule::tglJumpOnData()
 {
-   jumpOnData = !jumpOnData;
+    jumpOnData = !jumpOnData;
     GRO_update("jumpOnData", jumpOnData); //NOTE: for debug
 }

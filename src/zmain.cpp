@@ -8,13 +8,23 @@
 
 void signalHandler( int sig )
 {
-
     GRO_stopGraphics();
     system("clear");
-    fprintf( stderr, "SignalHandler reached exit\n" );
 
+    /**
+    *
+    *   do stuff logged in GRO files
+    *
+    **/
 
     GRO_close();
+
+    /**
+    *
+    *   do stuff logged in terminal
+    *
+    **/
+
     printf( "Return to terminal\n" );
     fflush(stdout);
 
@@ -23,7 +33,7 @@ void signalHandler( int sig )
 
 int main(int argc, char* argv[])
 {
-
+    /// TODO: finish signals
     signal( SIGSEGV, signalHandler );
     signal( SIGABRT, signalHandler );
     signal( SIGTERM, signalHandler );
@@ -50,12 +60,12 @@ int main(int argc, char* argv[])
         }
     }
 
-
     // this will be still catch by GRO
     std::cout << "GRO: Reached end of main() " << std::endl;
 
     GRO_close();
-    // this will be printed on your terminal
+
+    // this will be printed on terminal
     std::cout << "Return to terminal" << std::endl;
 
     return 0;
