@@ -51,7 +51,7 @@
 		<Unit filename="src/GraphicObserver.cpp" />
 		<Unit filename="src/ScreenModule.cpp" />
 		<Unit filename="src/ScreenModuleHandler.cpp" />
-		<Unit filename="src/zmain.cpp" />
+		<Unit filename="src/main.cpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

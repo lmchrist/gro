@@ -59,7 +59,7 @@ MESSAGE("Linked Libraries are: " ${PROJECT_LINK_LIBS})
 set(PROJECT_LIB_NAME ${PROJECT_NAME_STR}_lib)
 set(PROJECT_EXEC_NAME ${PROJECT_NAME_STR}_test)
 
-add_executable(${PROJECT_EXEC_NAME} ${INCLUDE_FILES_GRO} ${PROJECT_SOURCE_DIR}/src/zmain.cpp)
+add_executable(${PROJECT_EXEC_NAME} ${INCLUDE_FILES_GRO} ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 target_link_libraries(${PROJECT_EXEC_NAME}
 	${PROJECT_LINK_LIBS}
